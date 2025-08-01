@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>AR.js - Modelo con Rotación Táctil y Animación Opcional</title>
+  <title>AR.js - Modelo cutlass71.glb</title>
 
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
@@ -11,7 +11,7 @@
   <!-- AR.js -->
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
   
-  <!-- aframe-extras para animation-mixer y tracked-controls (rotación) -->
+  <!-- aframe-extras (para animaciones) -->
   <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
 
   <style>
@@ -23,34 +23,33 @@
       color: yellow;
       font-family: Arial, sans-serif;
       font-size: 12px;
-      z-index: 100;
-      background: rgba(0,0,0,0.5);
-      padding: 5px;
+      background: rgba(0,0,0,0.6);
+      padding: 8px;
       border-radius: 4px;
+      z-index: 100;
       pointer-events: none;
     }
   </style>
 </head>
 <body>
   <!-- Mensaje de ayuda -->
-  <div id="info">Apunta al marcador y toca para girar</div>
+  <div id="info">🔍 Apunta al marcador<br>🔄 Toca y arrastra para girar</div>
 
   <a-scene
     embedded
     arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
     vr-mode-ui="enabled: false"
-    cursor="rayOrigin: mouse"
   >
-    <!-- Marcador -->
+    <!-- Marcador personalizado -->
     <a-marker type="pattern" url="marker.patt">
-      <!-- Modelo 3D en raíz: animado o estático -->
+      <!-- Modelo 3D: cutlass71.glb (en raíz) -->
       <a-entity
-        id="modelo-3d"
-        scale="0.5 0.5 0.5"
+        id="car-model"
+        scale="0.01 0.01 0.01"  <!-- Ajusta escala según tu modelo -->
         position="0 0 0"
         gltf-model="cutlass71.glb"
         animation-mixer="clip: *; loop: repeat; timeScale: 1.0"
-        touch-rotate-component
+        touch-rotate
       >
       </a-entity>
     </a-marker>
@@ -61,58 +60,63 @@
 
   <!-- Componente personalizado: rotación táctil -->
   <script>
-    // Evitar scroll accidental
+    // Evitar scroll
     document.body.ontouchmove = function(e) { e.preventDefault(); };
 
-    // Componente: rotar con el dedo
-    AFRAME.registerComponent('touch-rotate-component', {
-      init: function() {
+    // Componente: rotar con un dedo
+    AFRAME.registerComponent('touch-rotate', {
+      init: function () {
         this.touchStartX = null;
-        this.el.setAttribute('cursor', 'rayOrigin: mouse');
-        this.el.setAttribute('visible', true);
+        const el = this.el;
 
-        const scene = this.el.sceneEl;
-        const touchEl = this.el;
-
-        scene.canvas.addEventListener('touchstart', (e) => {
+        this.onTouchStart = (e) => {
           if (e.touches.length === 1) {
             this.touchStartX = e.touches[0].clientX;
           }
-        }, false);
+        };
 
-        scene.canvas.addEventListener('touchmove', (e) => {
+        this.onTouchMove = (e) => {
           if (this.touchStartX !== null && e.touches.length === 1) {
             const diffX = e.touches[0].clientX - this.touchStartX;
-            touchEl.object3D.rotation.y += diffX * 0.01;
+            el.object3D.rotation.y += diffX * 0.01;
             this.touchStartX = e.touches[0].clientX;
           }
-        }, false);
+        };
 
-        scene.canvas.addEventListener('touchend', () => {
+        this.onTouchEnd = () => {
           this.touchStartX = null;
-        }, false);
+        };
+
+        const scene = this.el.sceneEl;
+        scene.canvas.addEventListener('touchstart', this.onTouchStart, false);
+        scene.canvas.addEventListener('touchmove', this.onTouchMove, false);
+        scene.canvas.addEventListener('touchend', this.onTouchEnd, false);
+      },
+      remove: function () {
+        const scene = this.el.sceneEl;
+        scene.canvas.removeEventListener('touchstart', this.onTouchStart);
+        scene.canvas.removeEventListener('touchmove', this.onTouchMove);
+        scene.canvas.removeEventListener('touchend', this.onTouchEnd);
       }
     });
 
-    // Depuración: ¿modelo cargado? ¿animación activa?
+    // Depuración: errores y carga
     window.addEventListener('load', () => {
-      const modelEl = document.getElementById('modelo-3d');
-      
+      const modelEl = document.getElementById('car-model');
+
       modelEl.addEventListener('model-loaded', (ev) => {
         console.log('✅ Modelo cargado:', ev.detail.model);
-        
-        const mesh = ev.detail.model;
-        const animations = mesh.animations;
-        
+        const animations = ev.detail.model.animations;
         if (animations && animations.length > 0) {
-          console.log(`🎬 Animaciones encontradas: ${animations.length}`);
+          console.log(`🎬 ${animations.length} animaciones encontradas`);
         } else {
           console.log('ℹ️  Modelo sin animaciones');
         }
       });
 
-      modelEl.addEventListener('animation-start', (ev) => {
-        console.log('▶️ Animación iniciada:', ev.detail.clip.name);
+      modelEl.addEventListener('model-error', (ev) => {
+        console.error('❌ Error al cargar el modelo:', ev.detail);
+        alert("Error: No se pudo cargar cutlass71.glb. Revisa el nombre o formato.");
       });
     });
   </script>
