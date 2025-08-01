@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>AR.js - Modelo cutlass71.glb</title>
+  <title>AR.js - cutlass71.glb con control de escala</title>
 
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
@@ -11,17 +11,43 @@
   <!-- AR.js -->
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
   
-  <!-- aframe-extras (para animaciones) -->
+  <!-- aframe-extras para animaciones -->
   <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
 
   <style>
-    body { margin: 0; overflow: hidden; background: #000; }
+    body { margin: 0; overflow: hidden; background: #000; font-family: Arial, sans-serif; }
+    
+    #controls {
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      z-index: 100;
+    }
+
+    button {
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border: 2px solid white;
+      padding: 12px 24px;
+      font-size: 18px;
+      margin: 0 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    button:active {
+      background: white;
+      color: black;
+    }
+
     #info {
       position: absolute;
       top: 10px;
       left: 10px;
       color: yellow;
-      font-family: Arial, sans-serif;
       font-size: 12px;
       background: rgba(0,0,0,0.6);
       padding: 8px;
@@ -35,18 +61,25 @@
   <!-- Mensaje de ayuda -->
   <div id="info">🔍 Apunta al marcador<br>🔄 Toca y arrastra para girar</div>
 
+  <!-- Controles de escala -->
+  <div id="controls">
+    <button onclick="scaleModel(0.9)">-</button>
+    <button onclick="scaleModel(1.1)">+</button>
+  </div>
+
+  <!-- Escena AR -->
   <a-scene
     embedded
     arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
     vr-mode-ui="enabled: false"
   >
-    <!-- Marcador personalizado -->
+    <!-- Marcador -->
     <a-marker type="pattern" url="marker.patt">
-      <!-- Modelo 3D: cutlass71.glb (en raíz) -->
+      <!-- Modelo 3D: cutlass71.glb -->
       <a-entity
         id="car-model"
-        scale="0.01 0.01 0.01"  <!-- Ajusta escala según tu modelo -->
-        position="0 0 0"
+        scale="0.02 0.02 0.02"        <!-- Escala inicial para coche -->
+        position="0 0.1 0"             <!-- Elevado un poco -->
         gltf-model="cutlass71.glb"
         animation-mixer="clip: *; loop: repeat; timeScale: 1.0"
         touch-rotate
@@ -58,12 +91,12 @@
     <a-entity camera></a-entity>
   </a-scene>
 
-  <!-- Componente personalizado: rotación táctil -->
+  <!-- Scripts -->
   <script>
     // Evitar scroll
     document.body.ontouchmove = function(e) { e.preventDefault(); };
 
-    // Componente: rotar con un dedo
+    // Componente: rotar con el dedo
     AFRAME.registerComponent('touch-rotate', {
       init: function () {
         this.touchStartX = null;
@@ -100,23 +133,36 @@
       }
     });
 
-    // Depuración: errores y carga
+    // Control de escala
+    let currentScale = 0.02;
+
+    function scaleModel(factor) {
+      currentScale *= factor;
+      // Límites de escala
+      if (currentScale < 0.005) currentScale = 0.005;
+      if (currentScale > 0.5) currentScale = 0.5;
+
+      const model = document.getElementById('car-model');
+      model.setAttribute('scale', {
+        x: currentScale,
+        y: currentScale,
+        z: currentScale
+      });
+
+      console.log(`📏 Escala ajustada: ${currentScale.toFixed(4)}`);
+    }
+
+    // Depuración
     window.addEventListener('load', () => {
       const modelEl = document.getElementById('car-model');
-
-      modelEl.addEventListener('model-loaded', (ev) => {
-        console.log('✅ Modelo cargado:', ev.detail.model);
-        const animations = ev.detail.model.animations;
-        if (animations && animations.length > 0) {
-          console.log(`🎬 ${animations.length} animaciones encontradas`);
-        } else {
-          console.log('ℹ️  Modelo sin animaciones');
-        }
+      
+      modelEl.addEventListener('model-loaded', () => {
+        console.log('✅ Modelo cutlass71.glb cargado correctamente');
       });
 
       modelEl.addEventListener('model-error', (ev) => {
         console.error('❌ Error al cargar el modelo:', ev.detail);
-        alert("Error: No se pudo cargar cutlass71.glb. Revisa el nombre o formato.");
+        alert('❌ No se pudo cargar cutlass71.glb. Revisa el nombre, formato o conexión.');
       });
     });
   </script>
